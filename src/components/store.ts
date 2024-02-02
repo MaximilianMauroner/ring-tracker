@@ -9,27 +9,29 @@ export function openDatabase() {
 
 const createStore = (db: SQLite.WebSQLDatabase) => {
     const remove = false;
-    const seed = false;
+    const seed = true;
     db.transaction((tx) => {
         tx.executeSql(
-            `create table if not exists insertions (
-                id integer primary key not null, 
-                inserted tinyint,
-                date text, 
-                value text
+            `CREATE TABLE IF NOT EXISTS insertions
+            (
+                id       INTEGER PRIMARY KEY NOT NULL,
+                inserted TINYINT,
+                date     TEXT,
+                value    TEXT
             );
-            DELETE FROM insertions where 1;
-            `
+            DELETE FROM insertions
+            WHERE  1;  
+            `,
         );
-        if (remove) tx.executeSql(`DELETE FROM insertions where 1;`);
+        if (remove) tx.executeSql(`DELETE FROM insertions WHERE  1;`);
         if (seed) {
             console.log("seeding");
             let date = new Date();
             for (let i = 0; i < 10; i++) {
                 date.setDate(date.getDate() - Math.floor(Math.random() * 10));
                 tx.executeSql(
-                    `insert into insertions (inserted, date, value) values (? , ?, ?);`,
-                    [i % 2, date.toISOString(), `value ${i}`]
+                    `INSERT INTO insertions (inserted, date, value) VALUES (?,?,?);`,
+                    [i % 2, date.toISOString(), `value ${i}`],
                 );
             }
         }
@@ -40,21 +42,21 @@ export function insert(
     db: SQLite.WebSQLDatabase,
     date: Date,
     inserted: boolean,
-    value = ""
+    value = "",
 ) {
     db.transaction((tx) => {
         tx.executeSql(
             `insert into insertions (inserted, date, value) values (? , ?, ?);`,
             [inserted ? 1 : 0, date.toISOString(), value],
             () => {},
-            errorCallback
+            errorCallback,
         );
     });
 }
 
 export function readInsertions(
     db: SQLite.WebSQLDatabase,
-    setInsertions: (insertions: Insertion[]) => void
+    setInsertions: (insertions: Insertion[]) => void,
 ) {
     db.transaction((tx) => {
         tx.executeSql(
@@ -67,14 +69,14 @@ export function readInsertions(
                 });
                 setInsertions(_array as Insertion[]);
             },
-            errorCallback
+            errorCallback,
         );
     });
 }
 
 function errorCallback(
     transaction: SQLite.SQLTransaction,
-    error: SQLite.SQLError
+    error: SQLite.SQLError,
 ) {
     console.log("Error ", error);
     return false;

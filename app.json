@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "ring-tracker",
-    "slug": "ring-tracker",
+    "name": "ring-tracker-mobile",
+    "slug": "ring-tracker-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
