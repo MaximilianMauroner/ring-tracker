@@ -7,9 +7,9 @@ export function openDatabase() {
     return db;
 }
 
-const createStore = (db: SQLite.WebSQLDatabase) => {
+const createStore = (db: SQLite.SQLiteDatabase) => {
     const remove = false;
-    const seed = true;
+    const seed = false;
     db.transaction((tx) => {
         tx.executeSql(
             `CREATE TABLE IF NOT EXISTS insertions
@@ -18,17 +18,17 @@ const createStore = (db: SQLite.WebSQLDatabase) => {
                 inserted TINYINT,
                 date     TEXT,
                 value    TEXT
-            );
-            DELETE FROM insertions
-            WHERE  1;  
-            `,
+            );`,
         );
         if (remove) tx.executeSql(`DELETE FROM insertions WHERE  1;`);
         if (seed) {
-            console.log("seeding");
             let date = new Date();
-            for (let i = 0; i < 10; i++) {
-                date.setDate(date.getDate() - Math.floor(Math.random() * 10));
+            const count = 10;
+            console.log("seeding", count, "insertions");
+            for (let i = 0; i < count; i++) {
+                date.setDate(
+                    date.getDate() - Math.floor(Math.random() * count),
+                );
                 tx.executeSql(
                     `INSERT INTO insertions (inserted, date, value) VALUES (?,?,?);`,
                     [i % 2, date.toISOString(), `value ${i}`],
@@ -39,7 +39,7 @@ const createStore = (db: SQLite.WebSQLDatabase) => {
 };
 
 export function insert(
-    db: SQLite.WebSQLDatabase,
+    db: SQLite.SQLiteDatabase,
     date: Date,
     inserted: boolean,
     value = "",
@@ -55,7 +55,7 @@ export function insert(
 }
 
 export function readInsertions(
-    db: SQLite.WebSQLDatabase,
+    db: SQLite.SQLiteDatabase,
     setInsertions: (insertions: Insertion[]) => void,
 ) {
     db.transaction((tx) => {
