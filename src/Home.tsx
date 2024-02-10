@@ -4,23 +4,12 @@ import moment from "moment";
 import { Pressable, Text, View } from "react-native";
 import { colors } from "./components/styling";
 import { Calendar } from "react-native-calendars";
-import { useInsertion } from "../database/insertions";
+import { formatDate, useInsertion } from "../database/insertions";
 import db from "../database/sqlite";
-
+import InsertionDetailsModal from "./components/InsertionDetailsModal";
 const HomeScreen = () => {
-    return <MainRing />;
-};
-export default HomeScreen;
-
-const MainRing = () => {
     const [inserted, setInserted] = useState(false);
-    const {
-        insertions,
-        getInsertions,
-        addInsertion,
-        updateInsertion,
-        deleteInsertion,
-    } = useInsertion();
+    const { insertions, getInsertions, addInsertion } = useInsertion();
 
     const handleCircleClick = () => {
         addInsertion(db, new Date(), inserted);
@@ -41,6 +30,12 @@ const MainRing = () => {
     if (lastInsertion) {
         dateDiff -= moment().diff(moment(lastInsertion.date), "days");
     }
+    const buttonBgColor =
+        dateDiff >= 0
+            ? inserted
+                ? "bg-pink-500"
+                : "bg-sky-500"
+            : "bg-red-500";
     return (
         <>
             <View>
@@ -49,16 +44,23 @@ const MainRing = () => {
                     <Pressable
                         onTouchEndCapture={handleCircleClick}
                         className={
-                            "m-auto flex h-80 w-80 items-center justify-center rounded-full " +
-                            (inserted ? "bg-pink-500" : "bg-sky-500")
+                            "m-auto  flex h-80 w-80 items-center justify-center rounded-full " +
+                            buttonBgColor
                         }
                     >
-                        <Text>{inserted ? "Inserted" : "Removed"}</Text>
-                        <Text>
-                            {moment(lastInsertion.date).format("DD/MM/YYYY")}
+                        <Text className="text-lg font-bold text-pink-100">
+                            {inserted ? "Inserted" : "Removed"}
                         </Text>
-                        <Text>
-                            {`\n${inserted ? "Take out" : "Insert it"} in ${dateDiff} days`}
+                        <Text className="text-pink-100">
+                            {"on the " +
+                                moment(lastInsertion.date).format("DD/MM/YYYY")}
+                        </Text>
+                        <Text
+                            className={
+                                "p-2 text-2xl font-extrabold text-pink-100"
+                            }
+                        >
+                            {`${inserted ? "Take out" : "Insert it"} in ${dateDiff} days`}
                         </Text>
                     </Pressable>
                 </View>
@@ -66,9 +68,13 @@ const MainRing = () => {
         </>
     );
 };
+export default HomeScreen;
 
 const ViewData = ({ insertions }: { insertions: Insertion[] }) => {
     const [showModal, setShowModal] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [selectedInsertion, setSelectedInsertion] =
+        useState<Insertion | null>(null);
     const selected = new Map<string, any>();
     insertions.forEach((insertion) => {
         const date = formatDate(insertion.date);
@@ -106,26 +112,25 @@ const ViewData = ({ insertions }: { insertions: Insertion[] }) => {
                 enableSwipeMonths={true}
                 markingType={"custom"}
                 onDayPress={(day) => {
-                    console.log(day);
+                    const d = new Date(day.dateString);
 
+                    setSelectedInsertion(
+                        insertions.find(
+                            (i) => formatDate(i.date) === formatDate(d),
+                        ) || null,
+                    );
+                    setSelectedDate(d);
                     setShowModal(true);
                 }}
                 markedDates={Object.fromEntries(selected)}
             />
+            <InsertionDetailsModal
+                key={selectedDate.toString()}
+                selectedDate={selectedDate}
+                selectedInsertion={selectedInsertion}
+                showModal={showModal}
+                setShowModal={setShowModal}
+            />
         </>
     );
 };
-
-function formatDate(date: Date) {
-    return moment(date).format("YYYY-MM-DD");
-}
-
-const DisplayCalendarModal = ({
-    insertions,
-    showModal,
-    setShowModal,
-}: {
-    insertions: Insertion[];
-    showModal: boolean;
-    setShowModal: (show: boolean) => void;
-}) => {};

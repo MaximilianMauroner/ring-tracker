@@ -3,7 +3,7 @@ import * as SQLite from "expo-sqlite";
 import { InsertionDetail } from "./types";
 
 export function useDetails() {
-    const [details, setDetail] = useState<InsertionDetail[]>([]);
+    const [detail, setDetail] = useState<InsertionDetail | null>(null);
 
     /**
      * Whenever the todos table has mutated, we need to fetch the data set again order to sync DB -> UI State
@@ -15,11 +15,11 @@ export function useDetails() {
         tx.executeSql(
             "SELECT * FROM insertion_detail WHERE insertionId = ? ORDER BY date DESC;",
             [insertionId],
-            (_, { rows: { _array } }) => setDetail(_array),
+            (_, { rows: { _array } }) => setDetail(_array[0]),
         );
     };
 
-    const getDetails = (db: SQLite.Database, insertionId: number) => {
+    const getDetail = (db: SQLite.Database, insertionId: number) => {
         db.readTransaction((tx) => fetchInsertions(tx, insertionId));
     };
 
@@ -68,8 +68,8 @@ export function useDetails() {
     };
 
     return {
-        details,
-        getDetails,
+        detail,
+        getDetail,
         addDetail,
         updateDetail,
         deleteDetail,

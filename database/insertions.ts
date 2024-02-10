@@ -1,6 +1,7 @@
 import { useState } from "react";
 import * as SQLite from "expo-sqlite";
 import { Insertion } from "./types";
+import moment from "moment";
 
 export function useInsertion() {
     const [insertions, setInsertions] = useState<Insertion[]>([]);
@@ -9,7 +10,9 @@ export function useInsertion() {
         tx.executeSql(
             "SELECT * FROM insertions ORDER BY date DESC;",
             [],
-            (_, { rows: { _array } }) => setInsertions(_array),
+            (_, { rows: { _array } }) => {
+                console.log("len", _array.length), setInsertions(_array);
+            },
         );
     };
 
@@ -25,7 +28,7 @@ export function useInsertion() {
         db.transaction((tx) => {
             tx.executeSql(
                 "INSERT INTO insertions (date, inserted) VALUES (?,?);",
-                [date.toISOString(), inserted ? 1 : 0],
+                [formatDate(date), inserted ? 1 : 0],
             );
             console.log("inserted");
 
@@ -39,7 +42,7 @@ export function useInsertion() {
         inserted: boolean,
     ) => {
         db.transaction((tx) => {
-            tx.executeSql("UPDATE insertions SET title = ? WHERE id = ?;", [
+            tx.executeSql("UPDATE insertions SET inserted = ? WHERE id = ?;", [
                 inserted ? 1 : 0,
                 id,
             ]);
@@ -62,4 +65,7 @@ export function useInsertion() {
         updateInsertion,
         deleteInsertion,
     };
+}
+export function formatDate(date: Date) {
+    return moment(date).format("YYYY-MM-DD");
 }
