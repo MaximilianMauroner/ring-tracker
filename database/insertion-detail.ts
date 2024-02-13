@@ -1,5 +1,6 @@
-import { useState } from "react";
 import * as SQLite from "expo-sqlite";
+import { useState } from "react";
+
 import { InsertionDetail } from "./types";
 
 export function useDetails() {
@@ -8,10 +9,7 @@ export function useDetails() {
     /**
      * Whenever the todos table has mutated, we need to fetch the data set again order to sync DB -> UI State
      */
-    const fetchInsertions = (
-        tx: SQLite.SQLTransaction,
-        insertionId: number,
-    ) => {
+    const fetchDetails = (tx: SQLite.SQLTransaction, insertionId: number) => {
         tx.executeSql(
             "SELECT * FROM insertion_detail WHERE insertionId = ? ORDER BY date DESC;",
             [insertionId],
@@ -20,7 +18,7 @@ export function useDetails() {
     };
 
     const getDetail = (db: SQLite.Database, insertionId: number) => {
-        db.readTransaction((tx) => fetchInsertions(tx, insertionId));
+        db.readTransaction((tx) => fetchDetails(tx, insertionId));
     };
 
     const addDetail = (
@@ -34,9 +32,7 @@ export function useDetails() {
                 "INSERT INTO insertion_detail (insertionId, description, rating) VALUES (?,?,?);",
                 [insertionId, description, rating],
             );
-            console.log("inserted");
-
-            fetchInsertions(tx, insertionId);
+            fetchDetails(tx, insertionId);
         });
     };
 
@@ -52,7 +48,7 @@ export function useDetails() {
                 "UPDATE insertion_detail SET description = ?, rating = ? WHERE id = ?;",
                 [description, rating, id],
             );
-            fetchInsertions(tx, insertionId);
+            fetchDetails(tx, insertionId);
         });
     };
 
@@ -63,7 +59,7 @@ export function useDetails() {
     ) => {
         db.transaction((tx) => {
             tx.executeSql("DELETE FROM insertion_detail WHERE id = ?;", [id]);
-            fetchInsertions(tx, insertionId);
+            fetchDetails(tx, insertionId);
         });
     };
 

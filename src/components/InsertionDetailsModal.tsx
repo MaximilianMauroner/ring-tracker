@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { useDetails } from "../../database/insertion-detail";
-import { Insertion } from "../../database/types";
+import { useState } from "react";
 import { Modal, Pressable, Switch, Text, TextInput, View } from "react-native";
+
 import Checkbox from "./Checkbox";
-import db from "../../database/sqlite";
-import { formatDate, useInsertion } from "../../database/insertions";
 import { colors } from "./styling";
+import useInsertions from "../../database/insertions";
+import { Insertion } from "../../database/types";
+import { formatDate } from "../../database/helpers";
 
 const InsertionDetailsModal = ({
     selectedDate,
@@ -18,25 +18,10 @@ const InsertionDetailsModal = ({
     showModal: boolean;
     setShowModal: (show: boolean) => void;
 }) => {
-    const { detail, getDetail } = useDetails();
-
-    useEffect(() => {
-        if (selectedInsertion?.id) {
-            getDetail(db, selectedInsertion?.id);
-        }
-    }, [selectedInsertion]);
-
-    useEffect(() => {
-        if (selectedInsertion?.id) {
-            getDetail(db, selectedInsertion?.id);
-        }
-    }, []);
-    console.log(detail);
-
     return (
         <Modal
             animationType="slide"
-            transparent={true}
+            transparent
             visible={showModal}
             onRequestClose={() => {
                 setShowModal(!showModal);
@@ -60,24 +45,18 @@ const CreateDetail = ({
     selectedInsertion: Insertion | null;
     setShowModal: (show: boolean) => void;
 }) => {
+    const store = useInsertions();
     const [text, onChangeText] = useState("");
     const [rating, setRating] = useState(0);
 
     const [inserted, setInserted] = useState(
         selectedInsertion?.inserted || false,
     );
-
-    const { addInsertion, updateInsertion } = useInsertion();
-    const { addDetail } = useDetails();
-
     const handleSubmit = () => {
-        console.log("inserting");
-
         if (selectedInsertion) {
-            addDetail(db, selectedInsertion?.id, text, rating);
-            updateInsertion(db, selectedInsertion?.id, inserted);
+            store.update(selectedInsertion, inserted);
         } else {
-            addInsertion(db, selectedDate, inserted);
+            store.add(selectedDate, inserted);
         }
         setShowModal(false);
     };
@@ -130,7 +109,7 @@ const CreateDetail = ({
                                         className="pb-2 text-base font-normal leading-6 text-gray-900"
                                         id="modal-title"
                                     >
-                                        {"Rating:"}
+                                        Rating:
                                     </Text>
                                     <View className="flex w-full flex-row justify-between">
                                         {Array.from({ length: 5 }).map(

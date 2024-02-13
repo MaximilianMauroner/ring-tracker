@@ -1,71 +1,101 @@
-import { useState } from "react";
 import * as SQLite from "expo-sqlite";
 import { Insertion } from "./types";
-import moment from "moment";
+import { create } from "zustand";
+import db from "./sqlite";
+import { formatDate } from "./helpers";
 
-export function useInsertion() {
-    const [insertions, setInsertions] = useState<Insertion[]>([]);
+export type InsertionsStore = {
+    insertions: Insertion[];
+    add(date: Date, inserted: boolean): void;
+    update(item: Insertion, inserted: boolean): void;
+    remove: (item: Insertion) => void;
+};
 
-    const fetchInsertions = (tx: SQLite.SQLTransaction) => {
+const fetchInsertions = (db: SQLite.SQLiteDatabase) => {
+    console.log("here");
+
+    let insertedValues: Insertion[] = [];
+
+    db.readTransaction((tx) => {
         tx.executeSql(
             "SELECT * FROM insertions ORDER BY date DESC;",
             [],
             (_, { rows: { _array } }) => {
-                console.log("len", _array.length), setInsertions(_array);
+                insertedValues = _array.map((i: any) => {
+                    return {
+                        id: i.id,
+                        date: new Date(i.date),
+                        inserted: i.inserted === 1,
+                    };
+                });
+                insertedValues.push({
+                    id: 0,
+                    date: new Date(),
+                    inserted: false,
+                });
             },
         );
-    };
+    });
+    console.log("inserted", insertedValues);
 
-    const getInsertions = (db: SQLite.Database) => {
-        db.readTransaction(fetchInsertions);
-    };
+    return insertedValues;
+};
 
-    const addInsertion = (
-        db: SQLite.Database,
-        date: Date,
-        inserted: boolean,
-    ) => {
-        db.transaction((tx) => {
-            tx.executeSql(
-                "INSERT INTO insertions (date, inserted) VALUES (?,?);",
-                [formatDate(date), inserted ? 1 : 0],
-            );
-            console.log("inserted");
+const useInsertions = create<InsertionsStore>((set) => ({
+    insertions: fetchInsertions(db),
+    add: (date: Date, inserted: boolean) => {
+        addInsertion(db, date, inserted);
+        set((state) => ({
+            ...state,
+            insertions: fetchInsertions(db),
+        }));
+    },
+    update: (item: Insertion, inserted: boolean) => {
+        updateInsertion(db, item.id, inserted);
+        set((state) => ({
+            ...state,
+            insertions: fetchInsertions(db),
+        }));
+    },
+    remove: (item: Insertion) => {
+        removeInsertion(db, item.id);
+        set((state) => ({
+            ...state,
+            insertions: fetchInsertions(db),
+        }));
+    },
+}));
 
-            fetchInsertions(tx);
-        });
-    };
+const addInsertion = (
+    db: SQLite.SQLiteDatabase,
+    date: Date,
+    inserted: boolean,
+) => {
+    db.transaction((tx) => {
+        tx.executeSql("INSERT INTO insertions (date, inserted) VALUES (?,?);", [
+            formatDate(date),
+            inserted ? 1 : 0,
+        ]);
+    });
+};
 
-    const updateInsertion = (
-        db: SQLite.Database,
-        id: number,
-        inserted: boolean,
-    ) => {
-        db.transaction((tx) => {
-            tx.executeSql("UPDATE insertions SET inserted = ? WHERE id = ?;", [
-                inserted ? 1 : 0,
-                id,
-            ]);
-            fetchInsertions(tx);
-        });
-    };
+const updateInsertion = (
+    db: SQLite.SQLiteDatabase,
+    id: number,
+    inserted: boolean,
+) => {
+    db.transaction((tx) => {
+        tx.executeSql("UPDATE insertions SET inserted = ? WHERE id = ?;", [
+            inserted ? 1 : 0,
+            id,
+        ]);
+    });
+};
 
-    const deleteInsertion = (db: SQLite.Database, id: number) => {
-        db.transaction((tx) => {
-            tx.executeSql("DELETE FROM insertions WHERE id = ?;", [id]);
+const removeInsertion = (db: SQLite.SQLiteDatabase, id: number) => {
+    db.transaction((tx) => {
+        tx.executeSql("DELETE FROM insertions WHERE id = ?;", [id]);
+    });
+};
 
-            fetchInsertions(tx);
-        });
-    };
-
-    return {
-        insertions,
-        getInsertions,
-        addInsertion,
-        updateInsertion,
-        deleteInsertion,
-    };
-}
-export function formatDate(date: Date) {
-    return moment(date).format("YYYY-MM-DD");
-}
+export default useInsertions;

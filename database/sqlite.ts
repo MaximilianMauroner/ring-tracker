@@ -1,12 +1,12 @@
 import * as SQLite from "expo-sqlite";
-import { formatDate } from "./insertions";
+import { formatDate } from "./helpers";
 
 const db = SQLite.openDatabase("ring-tracker.db");
 const remove = false;
-const seed = true;
+const seed = false;
 const seedCount = 10;
 
-export function initDatabase(db: SQLite.Database) {
+export function initDatabase(db: SQLite.SQLiteDatabase) {
     db.transaction((tx) => {
         if (remove) {
             console.log("removing all tables");
@@ -36,7 +36,7 @@ export const setup_functions = () => {
     db.transaction((tx) => {
         if (seed) {
             console.log("seeding");
-            let date = new Date();
+            const date = new Date();
             for (let i = 0; i < seedCount; i++) {
                 date.setDate(
                     date.getDate() - Math.floor(Math.random() * seedCount),
